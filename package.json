@@ -1,9 +1,11 @@
 {
   "devDependencies": {
-    "cypress": "^10.8.0",
+    "@badeball/cypress-cucumber-preprocessor": "^12.2.0",
+    "@bahmutov/cypress-esbuild-preprocessor": "^2.1.5",
+    "cypress": "^10.10.0",
     "cypress-plugin-tab": "^1.0.5",
     "cypress-xpath": "^2.0.1",
-    "esbuild": "^0.15.7",
+    "esbuild": "^0.15.10",
     "multiple-cucumber-html-reporter": "^2.0.0"
   },
   "name": "e2eautomation",
@@ -11,8 +13,6 @@
   "description": "Automation of armonix flows",
   "main": "index.js",
   "dependencies": {
-    "@badeball/cypress-cucumber-preprocessor": "^12.2.0",
-    "@bahmutov/cypress-esbuild-preprocessor": "^2.1.3",
     "aggregate-error": "^3.1.0",
     "ansi-colors": "^4.1.3",
     "ansi-escapes": "^4.3.2",
@@ -169,7 +169,8 @@
   },
   "scripts": {
     "test": "cypress open --browser edge --e2e",
-    "cypress:open": "cypress open"
+    "cypress:open": "cypress open",
+    "cypress:execution": "cypress run"
   },
   "keywords": [
     "E2E"
