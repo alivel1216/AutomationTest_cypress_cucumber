@@ -1,0 +1,2 @@
+1.-npm install cypress --save-dev --> Instalación
+2.-npm install -g npx --> 
