@@ -25,4 +25,5 @@
 // Cypress.Commands.overwrite('visit', (originalFn, url, options) => { ... })
 import './login'
 import './deduciblePER'
+import './deducibleV2'
 import './services'

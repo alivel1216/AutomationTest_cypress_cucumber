@@ -3,7 +3,7 @@ Feature: Deducible PER
         Given Un usuario se loguea en Armonix "EDPALADINES" "Dp4l4dines_" "Saludsa | Armonix"
 
     Scenario: Cuando el contrato es valido
-        When Un usuario accede Liquidaciones e ingresa el contrato "5633036"
+        When Un usuario accede en Liquidaciones e ingresa el contrato "5633036"
         Then Un usuario accede al listado de benficiarios
         And Un usuario selecciona un beneficiario
 
@@ -22,4 +22,4 @@ Feature: Deducible PER
         And Un usuario ingresa la fecha de inicio y fin de la autorización y la autorización "01/01/2022" "01/01/2023" "1875496357"
         And Un usuario ingresa el total de la factura "10" 
 
-        When Un usuario ingresa el detalle de la factura "301002" "1" "10"         
+        When Un usuario ingresa el detalle de la factura "301002" "1" "10"   

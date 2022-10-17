@@ -23,6 +23,7 @@ module.exports = defineConfig({
   requestTimeout: 20000,
   responseTimeout: 20000,
   e2e: {
+    experimentalSessionAndOrigin: true,
     async setupNodeEvents(on, config) {
       const bundler = createBundler({
         plugins: [createEsbuildPlugin(config)],

@@ -1,5 +1,6 @@
 /// <reference types="Cypress" />
 
+//obtener las credenciales del usuario(Dianita)
 Cypress.Commands.add('getTokenService', (username, password) => {
   const url = `https://pruebas.servicios.saludsa.com.ec/ServicioArmonix/api/seguridad/loginArmonix`
   cy.request({
@@ -26,7 +27,8 @@ Cypress.Commands.add('getTokenService', (username, password) => {
   })
 });
 
-Cypress.Commands.add('filterForTransactionsService', (numContract) => {
+//Obtener datos del contrato 
+Cypress.Commands.add('filterForAuthorizationService', (numContract) => {
   const url = `https://pruebas.servicios.saludsa.com.ec/ServicioArmonix/api/contratos/filterForTransacciones`
   cy.request({
     method: 'POST',
@@ -45,9 +47,9 @@ Cypress.Commands.add('filterForTransactionsService', (numContract) => {
     },
     body: {
       "NumeroContrato": numContract,
+      "filterByAutorizacion": false,
       "filterByEmpresa": false,
       "filterByLiquidacion": false,
-      "filterByAutorizacion": false,
       "filterByNumeroSobre": false,
       "filterEstadoContrato": false
     }
@@ -58,14 +60,39 @@ Cypress.Commands.add('filterForTransactionsService', (numContract) => {
   })
 });
 
+//Obtener las cuotas de mora 
 Cypress.Commands.add('getDefaulterDetailsService', (numContract) => {
-  cy.filterForTransactionsService(numContract).then(value => {
+  cy.filterForAuthorizationService(numContract).then(value => {
     const url = `https://pruebas.servicios.saludsa.com.ec/ServicioArmonix/api/cotizacion/ObtenerDetallesMora/`
       + value.data[0].CodigoRegion + '/' + value.data[0].CodigoProducto + '/' + value.data[0].NumeroContrato
     cy.request({
       method: 'GET',
       url: url,
       headers: {
+        'CodigoAplicacion': 28,
+        'CodigoPlataforma': 7,
+        'Authorization': window.localStorage.getItem("tokenType") + " " + window.localStorage.getItem("accessToken"),
+        'DireccionIP': '186.47.182.97',
+        'DispositivoNavegador': 'Chrome',
+        'SistemaOperativo': 'Windows',
+        'Content-Type': 'application/json; charset=utf-8'
+      }
+    }).then(function (response) {
+      expect(response.status).to.eq(200);
+      return cy.wrap(response.body);
+    })
+  });
+});
+
+Cypress.Commands.add('getDeductibleInformationService', (numContract) => {
+  cy.filterForAuthorizationService(numContract).then(value => {
+    const url = `http://pruebas.servicios.saludsa.com.ec/ServicioContratos/api/contrato/ObtenerContratoPorDocumento?tipoDocumento=C&numeroDocumento=`
+    +value.data[0].Cedula +'&filtrarCorporativoAntiguo=+false'
+    cy.request({
+      method: 'GET',
+      url: url,
+      headers: {
+        'Accept': 'application/json',
         'CodigoAplicacion': 28,
         'CodigoPlataforma': 7,
         'Authorization': window.localStorage.getItem("tokenType") + " " + window.localStorage.getItem("accessToken"),
@@ -76,83 +103,7 @@ Cypress.Commands.add('getDefaulterDetailsService', (numContract) => {
       }
     }).then(function (response) {
       expect(response.status).to.eq(200);
-      cy.wrap(response.body);
+      return cy.wrap(response.body);
     })
-  })
-});
-
-Cypress.Commands.add('getMovementsService', (numContract) => {
-  cy.filterForTransactionsService(numContract).then(value => {
-    const url = `https://pruebas.servicios.saludsa.com.ec/ServicioArmonix/api/movimiento/filter`
-    cy.request({
-      method: 'POST',
-      url: url,
-      headers: {
-        "Connection": "keep-alive",
-        'Accept': 'application/json',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Authorization': window.localStorage.getItem("tokenType") + " " + window.localStorage.getItem("accessToken"),
-        'Host': 'pruebas.servicios.saludsa.com.ec',
-        'Origin': 'https://pruebas.redsaludsa.com',
-        'Referer': 'https://pruebas.redsaludsa.com/',
-        'Content-Type': 'application/json; charset=utf-8',
-        'DispositivoNavegador': 'Chrome'
-      },
-      body: {
-        "CodigoContrato": value.data[0].CodigoContrato,
-        "CodigoRegion": value.data[0].CodigoRegion,
-        "CodigoProducto": value.data[0].CodigoProducto,
-        "ContratoNumero": value.data[0].ContratoNumero
-      }
-    }).then(function (response) {
-      expect(response.status).to.eq(200);
-      cy.getCurrentDate().then(date => {
-        cy.wrap(date).as('date');
-      })
-      cy.get('@date').then(date => {
-        expect(response.body.data[0].FechaMovimiento).to.eq(date);
-      })
-      let changePrice = response.body.data[1].Transaccion;
-      expect(response.body.data[0].NumeroContrato).to.eq(parseInt(numContract));
-      expect(response.body.data[0].EstadoMovimiento).to.eql("Activo");
-      cy.get('@price').then(price => {
-        if ('CAMBIO PRECIO' == changePrice) {
-          expect(changePrice).to.eql("CAMBIO PRECIO");
-          let priceService = (response.body.data[1].DatoAnterior).split(' ');
-          expect(priceService[0]).to.include(price.toString().trim());
-        } else {
-          expect(response.body.data[0].Transaccion).to.eql("CAMBIO PRECIO");
-          let priceService = (response.body.data[0].DatoAnterior).split(' ');
-          expect(priceService[0]).to.include(price.toString().trim());
-        }
-      });
-    })
-  })
-});
-
-Cypress.Commands.add('filterPaymentService', (numContract) => {
-  cy.filterForTransactionsService(numContract).then(value => {
-    const url = `https://pruebas.servicios.saludsa.com.ec/ServicioArmonix/api/cobranza/filter`
-    cy.request({
-      method: 'POST',
-      url: url,
-      headers: {
-        "Connection": "keep-alive",
-        'Accept': 'application/json',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Authorization': window.localStorage.getItem("tokenType") + " " + window.localStorage.getItem("accessToken"),
-        'Host': 'pruebas.servicios.saludsa.com.ec',
-        'Origin': 'https://pruebas.redsaludsa.com',
-        'Referer': 'https://pruebas.redsaludsa.com/',
-        'Content-Type': 'application/json; charset=utf-8',
-        'DispositivoNavegador': 'Chrome'
-      },
-      body: {
-        "CodigoContrato": value.data[0].CodigoContrato
-      }
-    }).then(function (response) {
-      expect(response.status).to.eq(200);
-      cy.wrap(response.body);
-    })
-  })
+  });
 });

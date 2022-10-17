@@ -16,7 +16,7 @@ Given("Un usuario se loguea en Armonix {string} {string} {string}", (username, p
   cy.validateTitle(title);
 });
 //Liquidaciones e ingresar contrato
-When("Un usuario accede Liquidaciones e ingresa el contrato {string}", (numContract) => {
+When("Un usuario accede en Liquidaciones e ingresa el contrato {string}", (numContract) => {
   cy.pLiquidations();
   cy.typeContract(numContract);
 });
