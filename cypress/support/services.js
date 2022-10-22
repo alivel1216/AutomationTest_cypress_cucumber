@@ -47,6 +47,7 @@ Cypress.Commands.add('filterForAuthorizationService', (numContract) => {
     },
     body: {
       "NumeroContrato": numContract,
+      "NumeroContrato": numContract,
       "filterByAutorizacion": false,
       "filterByEmpresa": false,
       "filterByLiquidacion": false,
@@ -87,7 +88,7 @@ Cypress.Commands.add('getDefaulterDetailsService', (numContract) => {
 Cypress.Commands.add('getDeductibleInformationService', (numContract) => {
   cy.filterForAuthorizationService(numContract).then(value => {
     const url = `http://pruebas.servicios.saludsa.com.ec/ServicioContratos/api/contrato/ObtenerContratoPorDocumento?tipoDocumento=C&numeroDocumento=`
-    +value.data[0].Cedula +'&filtrarCorporativoAntiguo=+false'
+      + value.data[0].Cedula + '&filtrarCorporativoAntiguo=+false'
     cy.request({
       method: 'GET',
       url: url,
@@ -105,5 +106,38 @@ Cypress.Commands.add('getDeductibleInformationService', (numContract) => {
       expect(response.status).to.eq(200);
       return cy.wrap(response.body);
     })
+  });
+});
+
+Cypress.Commands.add('getClaimService', (numContract) => {
+  cy.filterForAuthorizationService(numContract).then(value => {
+    const url = `https://pruebas.servicios.saludsa.com.ec/ServicioArmonix/api/liquidaciones/GetReclamo`
+    cy.request({
+      method: 'POST',
+      url: url,
+      form: true,
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Accept': 'application/json',
+        'Authorization': window.localStorage.getItem("tokenType") + " " + window.localStorage.getItem("accessToken"),
+        'CodigoAplicacion': 28,
+        'CodigoPlataforma': 7,
+        'SistemaOperativo': 'Windows',
+        'DispositivoNavegador': 'Chrome',
+        'DireccionIP': '200.125.230.97',
+        'X-Page-Number': 1,
+        'X-Page-Size': '10'
+      },
+      body: {
+        "Region": value.data[0].CodigoRegion,
+        "CodigoProducto": value.data[0].CodigoProducto,
+        "ContratoNumero": numContract,
+        "PersonaNumero": value.data[0].Cedula
+      }
+    }).then(function (response) {
+      expect(response.status).to.eq(200);
+      expect(response.body.data[0].NumeroContrato).to.eq(parseInt(numContract));
+      return cy.wrap(response.body);
+    });
   });
 });

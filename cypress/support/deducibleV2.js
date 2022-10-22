@@ -1,4 +1,4 @@
-import { isEmpty, random } from "lodash";
+import { isEmpty, random, wrap } from "lodash";
 import dayjs from 'dayjs';
 require('cypress-xpath');
 const time = 2500;
@@ -83,14 +83,15 @@ Cypress.Commands.add('isDefaulter', () => {
 Cypress.Commands.add('selectBeneficiarie', (numContract, quantity, numRUC, diagnosticCode, numRequest) => {
   cy.isDeductibleAvailable(numContract, quantity).then(isDeductibleAvailable => {
     if (isDeductibleAvailable == true) {
-      cy.log('ENTRO A LA CONDICION VERDADERA');
+      cy.log('No calcula COPAGO');
       cy.xpath("//td[contains(.,'TITULAR')]").click();
       cy.wait(time);
       /*cy.get("#btnNuevo").should("be.visible").click();//click en btn nueva liquidación
       cy.wait(time);*/
       cy.liquidationData(numRUC, diagnosticCode, numRequest);
     } else {
-      cy.log('ENTRO A LA CONDICION FALSA');
+      cy.log('SI calcula COPAGO');
+      //cy.calculateCoveragePercentage()
     }
   });
 
@@ -102,12 +103,14 @@ Cypress.Commands.add('isDeductibleAvailable', (numContract, quantity) => {
   cy.getDeductibleInformationService(numContract).then(s => {
     cy.wrap(s.Datos.Entidades[0].DeducibleTotal).as('totalDeductible')//obtengo el deducible total
     cy.wrap(s.Datos.Entidades[0].Beneficiarios[0].DeducibleCubierto).as('coverDeductible')//obetengo el deducible cubierto
+    cy.wrap(s.Datos.Entidades[0].Coberturas[0].Valor).as('coverPercentage');//obtengo el porcentaje de cobertura 
   });
   cy.get('@totalDeductible').then(totalDeductible => {
     cy.get('@coverDeductible').then(coverDeductible => {
       cy.log('El deducible total es= ' + totalDeductible)
       cy.log('El deducible cubierto es= ' + coverDeductible)
       dAvailable = totalDeductible - coverDeductible;
+      cy.wrap(dAvailable).as('dAvai');
       cy.log('El deducible DISPONIBLE es= ' + dAvailable);
       if (dAvailable > 0 && dAvailable >= quantity) {
         cy.log('SI ES MAYOR QUE CERO Y MENERO QUE LA CANTIDAD');
@@ -142,6 +145,12 @@ Cypress.Commands.add('liquidationData', (numRUC, diagnosticCode, numRequest) => 
   });
   cy.wait(time);
   cy.get('#lugarAtencionId').select('Consulta Externa', { force: true }).should('have.value', 'Consulta Externa');
+  cy.get('#lugarAtencionId').find(':selected').then(coverage => {
+    let coverages = coverage.text();
+    cy.wrap(coverages).as('tipeCoverage');
+    cy.log("El lugar de atención es: " +coverages);
+  });
+
   cy.wait(time);
   cy.get("#numSobreCualquiera").should("be.visible").clear().type(numRequest);
   cy.wait(time);
@@ -254,4 +263,32 @@ Cypress.Commands.add('randomNumbers', (minG, maxG) => {
   var maxO = maxG;
   var numRandom = Math.floor(Math.random() * (maxO - minO + 1) + minO);
   return (numRandom);
-})
+});
+
+Cypress.Commands.add('calculateCoveragePercentage', (presented) => {
+  var cDeductible, dAvailable, bonus,coverVal, copago;
+  cy.get('@tipeCoverage').then(valueC => {
+    if(valueC != 'Hospital' && valueC != 'Hospital del Día'){
+      cy.get('@totalDeductible').then(totalDeductible => {
+        cy.get('@coverDeductible').then(coverDeductible => {
+          cy.get('@coverPercentage').then( coverPercentage => {
+            let cPer = Number(coverPercentage.text().split("%").join('')); 
+            coverVal = cPer / 100;
+          dAvailable = totalDeductible - coverDeductible;
+          if (dAvailable > 0 && dAvailable < presented) {
+            cDeductible = presented - dAvailable;
+            bonus = dAvailable * coverVal;
+            copago = dAvailable -bonus;
+            
+          } else if(dAvailable = 0 && dAvailable < presented){            
+            bonus = presented *coverVal;
+            copago = dAvailable -bonus;
+          }
+          return cy.wrap(copago).as('copago');
+        });
+      });
+        
+      });
+    }
+  });
+});
