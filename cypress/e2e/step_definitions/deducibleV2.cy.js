@@ -24,12 +24,14 @@ import {
   });
   
   //Listar y seleccionar beneficiarios
-  Then("El usuario selecciona al benficiario y procede a la liquidación {string}{string}{string}{string}{string}", (numContract, quantity,numRUC,diagnosticCode, numRequest) => {
+  Then("El usuario selecciona al benficiario y procede a la liquidación {string}{string}{string}{string}{string}{string}{string}{string}", (numContract, quantity,numRUC,
+    diagnosticCode, numRequest, tInvoice, procedure, presented) => {
     cy.beneficiariesList();
-    cy.validateContract(numContract,quantity,numRUC,diagnosticCode, numRequest);
+    cy.validateContract(numContract,quantity,numRUC,diagnosticCode, numRequest, tInvoice, procedure, presented);
   });
-
+/*
   And("El usuario ingresa los datos de la factura {string}{string}{string}{string}", (tInvoice,procedure, quantity, presented) =>{
     cy.newInvoice(tInvoice);
     cy.invoiceDetails(procedure, quantity, presented);
   })
+*/

@@ -47,7 +47,6 @@ Cypress.Commands.add('filterForAuthorizationService', (numContract) => {
     },
     body: {
       "NumeroContrato": numContract,
-      "NumeroContrato": numContract,
       "filterByAutorizacion": false,
       "filterByEmpresa": false,
       "filterByLiquidacion": false,
@@ -124,19 +123,62 @@ Cypress.Commands.add('getClaimService', (numContract) => {
         'CodigoPlataforma': 7,
         'SistemaOperativo': 'Windows',
         'DispositivoNavegador': 'Chrome',
+        'DireccionIP': '186.47.183.106',        
+      },
+      body: {
+        "CodigoProducto": value.data[0].CodigoProducto,
+        "ContratoNumero": numContract,
+        "PersonaNumero": value.data[0].NumeroPersona,
+        "Region": value.data[0].CodigoRegion
+      }
+    }).then(function (response) {
+      expect(response.status).to.eq(200);
+      expect(response.body.data[0].NumeroContrato).to.eq(parseInt(numContract));
+      return cy.wrap(response.body);
+    });
+  });
+});
+
+
+Cypress.Commands.add('coveragePercentageService', (numContract) => {
+  cy.filterForAuthorizationService(numContract).then(value => {
+    const url = `http://pruebas.servicios.saludsa.com.ec/ServicioArmonix/api/liquidaciones/liquidarReclamo`
+    cy.request({
+      method: 'POST',
+      url: url,
+      form: true,
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Accept': 'application/json',
+        'Authorization': window.localStorage.getItem("tokenType") + " " + window.localStorage.getItem("accessToken"),
+        'CodigoAplicacion': 28,
+        'CodigoPlataforma': 7,
+        'SistemaOperativo': 'Windows',
+        'DispositivoNavegador': 'Chrome',
         'DireccionIP': '200.125.230.97',
         'X-Page-Number': 1,
         'X-Page-Size': '10'
       },
       body: {
-        "Region": value.data[0].CodigoRegion,
-        "CodigoProducto": value.data[0].CodigoProducto,
-        "ContratoNumero": numContract,
-        "PersonaNumero": value.data[0].Cedula
+        
+        "Reclamo": { 
+          "NumeroReclamo": 28131695, 
+          "NumeroAlcance": 0
+        },
+        "ListaFacturas": [
+          {
+            "NumeroReclamo": 0,
+            "NumeroAlcance": 0,
+            "Codigo1": 14,
+            "Codigo2": 24, 
+            "Codigo3": 57845,
+            "NumeroConvenio": 5089776,
+            "TipoEmision": "O"
+          }
+        ] 
       }
     }).then(function (response) {
       expect(response.status).to.eq(200);
-      expect(response.body.data[0].NumeroContrato).to.eq(parseInt(numContract));
       return cy.wrap(response.body);
     });
   });
