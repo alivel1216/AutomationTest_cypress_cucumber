@@ -18,34 +18,33 @@ Cypress.Commands.add('pLiquidations', () => {
 
 //ingresar un contrato
 Cypress.Commands.add('typeContract', (numberContract) => {
-  cy.getDeductibleInformationService(numberContract).then(s => {    
+  cy.getDeductibleInformationService(numberContract).then(s => {
     cy.wrap(s.Datos.Entidades[0].Deducibles[0].Codigo).as('codeDeductible');//obtengo el tipo de deducible
   });
   cy.url().should('eq', 'https://pruebas.redsaludsa.com/aplicaciones/consultas360/#/liquidacion/list')
   expect(numberContract).to.not.be.empty;
   //cy.get("#numeroContrato").should("be.visible").click({force: true}).type(numContract);
-  cy.get("#numeroContrato").should("be.visible").type(numberContract);
-  cy.get("button.btn").click({ force: true });
+  cy.get("#numeroContrato").should("be.visible").type(numberContract + '{enter}');
+  //cy.get("button.btn").click({ force: true });
   cy.wait(time);
   cy.get('@codeDeductible').then(code => {
-    cy.log('El tipo de deducible del contrato'+ numberContract +'es '+code);
+    cy.log('El tipo de deducible del contrato ' + numberContract + ' es ' + code);
   });
 });
 //Muestra la lista de beneficiarios
-Cypress.Commands.add('beneficiariesList', () => {
+Cypress.Commands.add('selectContract', () => {
   cy.get("td.centerMiddle").should("be.visible").click({ force: true });
   cy.wait(time);
 });
 
-//ADAPTACION DE DARIAN
 //validar el contrato
-Cypress.Commands.add('validateContract', (numContract, quantity, numRUC, diagnosticCode, numRequest, tInvoice, procedure, presented) => {
-  //llamamos a la funcion que verifica el contrato
+Cypress.Commands.add('validateContract', (numContract,numRUC,diagnosticCode, numRequest, tInvoice, procedure, quantity, presented) => {
+
   cy.filterForAuthorizationService(numContract).then(s => {
     cy.wrap(s.data[0].EstadoContrato).as('status');//obetengo el estado del contrato
     cy.wrap(s.data[0].NumeroPersona).as('numPerson');//obetengo el # depersona(del beneficiario)
   });
-  //lamamos a la funicon que verifica si hay mora
+  
   cy.getDefaulterDetailsService(numContract).then(s => {
     cy.wrap(s.Datos.NumeroCuotasMora).as('amountOfFees')//obtengo el # de cuotas en mora
   });
@@ -56,11 +55,8 @@ Cypress.Commands.add('validateContract', (numContract, quantity, numRUC, diagnos
       cy.get('@amountOfFees').then(amountOfFees => {
         cy.log('El contrato tiene ' + amountOfFees + ' cuotas en mora.')
         if (amountOfFees < 4) {//verifico si la mora es menor que 4
-          cy.selectBeneficiarie(numContract, quantity, numRUC, diagnosticCode, numRequest, tInvoice, procedure, presented);
+          cy.selectBeneficiarie(numContract, numRUC, diagnosticCode, numRequest, tInvoice, procedure,quantity, presented);
           cy.wait(time);
-          /*cy.getMovementsService(numContract);
-          cy.wait(time);
-          cy.filterPaymentService(numContract);*/
         } else {
           cy.isDefaulter();
         }
@@ -82,86 +78,24 @@ Cypress.Commands.add('isDefaulter', () => {
   cy.wait(time);
   cy.get('.confirm').click();
 });
-//FIN ADAPTACION DE DARIAN
-//-----------------
 
 //Seleccionar beneficiaro y validar si tiene deducible disponible
-Cypress.Commands.add('selectBeneficiarie', (numContract, quantity, numRUC, diagnosticCode, numRequest, tInvoice, procedure, presented) => {
-  cy.isDeductibleCoveragePercentage(numContract, quantity).then(option => {
-    if (option == 'op1') {
-      cy.log('No calcula COPAGO');
-      cy.xpath("//td[contains(.,'TITULAR')]").click();
-      cy.wait(time);
-      cy.get("#btnNuevo").should("be.visible").click();//click en btn nueva liquidación
-      cy.wait(time);
-      cy.liquidationData(numRUC, diagnosticCode, numRequest, numContract);
-      cy.newInvoice(tInvoice);
-      cy.invoiceDetails(procedure, quantity, presented);
-    } else if(option == 'op2'){
-      cy.log('SI calcula COPAGO1');
-      //cy.calculateCoveragePercentage()
-      cy.get('@copago1').then(copago1 => {
-        cy.log('El copago debería ser: '+copago1);
-      });
-    } else if(option == 'op2'){
-      cy.log('SI calcula COPAGO2');
-      cy.get('@copago2').then(copago2 => {
-        cy.log('El copago debería ser: '+copago2);
-      });
-    }else{
-      cy.log('CONDICION sin ningun calculo ni flujo');      
-    }
-  });
-
+Cypress.Commands.add('selectBeneficiarie', (numContract,numRUC,diagnosticCode, numRequest, tInvoice, procedure, quantity, presented) => {
+  cy.get("#beneficiarioLiqId > tbody > tr:nth-child(1) > td:nth-child(4)").click();
+  //cy.xpath("//td[contains(.,'TITULAR')]").click();
+  //cy.xpath("//input[@id='establecimeintoId']").type(establishment, { force: true });
+  cy.wait(time);
+  cy.get("#btnNuevo").should("be.visible").click();//click en btn nueva liquidación
+  cy.wait(time);
+  cy.liquidationData(numRUC, diagnosticCode, numRequest, numContract,presented);
+  cy.newInvoice(tInvoice);
+  cy.invoiceDetails(procedure, quantity, presented);
 });
 
-//Funcion para verificar si el deducible esta disponible
-Cypress.Commands.add('isDeductibleCoveragePercentage', (numContract, quantity) => {
-  var cDeductible, dAvailable, bonus, coverVal, copago;
-  cy.getDeductibleInformationService(numContract).then(s => {
-    cy.wrap(s.Datos.Entidades[0].DeducibleTotal).as('totalDeductible')//obtengo el deducible total
-    cy.wrap(s.Datos.Entidades[0].Beneficiarios[0].DeducibleCubierto).as('coverDeductible')//obetengo el deducible cubierto
-    cy.wrap(s.Datos.Entidades[0].Coberturas[0].Valor).as('coverPercentage');//obtengo el porcentaje de cobertura 
-    cy.wrap(s.Datos.Entidades[0].Deducibles[0].Codigo).as('codeDeductible');//obtengo el tipo de deducible
-  });
-  cy.get('@totalDeductible').then(totalDeductible => {
-    cy.get('@coverDeductible').then(coverDeductible => {
-      cy.get('@coverPercentage').then(coverPercentage => {
-        cy.log('El deducible total es= ' + totalDeductible)
-        cy.log('El deducible cubierto es= ' + coverDeductible)
-        dAvailable = totalDeductible - coverDeductible;
-        cy.log('El deducible DISPONIBLE es= ' + dAvailable);
-        let cPer = coverPercentage;
-        let cPerT = cPer.split("%").join('');
-        let cPerN = Number(cPerT);
-        coverVal = cPerN / 100;
-        if (dAvailable > 0 && dAvailable >= quantity) {
-          //No se calcula COPAGO
-          cy.log('SI ES MAYOR QUE CERO Y MENERO QUE LA CANTIDAD');
-          return cy.wrap('op1');
-        } else if (dAvailable > 0 && dAvailable < presented) {
-          //cDeductible = presented - dAvailable;
-          //cDeductible = dAvailable;
-          bonus = dAvailable * coverVal;
-          copago = dAvailable - bonus;
-          cy.wrap(copago).as('copago1');
-          return cy.wrap('op2');
-        } else if (dAvailable = 0 && dAvailable < presented) {
-          bonus = presented * coverVal;
-          copago = dAvailable - bonus;
-          cy.wrap(copago).as('copago2');
-          return cy.wrap('op3');
-        } else {
-          //ver que se hace 
-          return cy.wrap(false);
-        }
-      });
-    });
-  });
-});
+
 
 //Ingresar los datos de la liquidación
-Cypress.Commands.add('liquidationData', (numRUC, diagnosticCode, numRequest, numContract) => {
+Cypress.Commands.add('liquidationData', (numRUC, diagnosticCode, numRequest, numContract, presented) => {
   cy.get("#btnNuevo").should("be.visible").click();//click en btn nueva liquidación
   cy.wait(time);
   cy.get('#slcOficina').select('Reembolso Online UIO', { force: true }).should('have.value', '17');//oficina de liquidación
@@ -185,8 +119,20 @@ Cypress.Commands.add('liquidationData', (numRUC, diagnosticCode, numRequest, num
   cy.get('#lugarAtencionId').find(':selected').then(coverage => {
     let coverages = coverage.text();
     cy.wrap(coverages).as('tipeCoverage');
-    cy.log("El lugar de atención es: " + coverages);
   });
+
+  cy.isDeductibleCoveragePercentage(numContract, presented).then(val => {
+    if (val == true) {
+      cy.log('No calcula COPAGO');
+    } else {
+      cy.log('SI calcula COPAGO1');
+      //cy.calculateCoveragePercentage()
+      cy.get('@copago').then(copago => {
+        cy.log('El copago debería ser: ' + copago);
+      });
+    } 
+  });
+
 
   cy.wait(time);
   cy.get("#numSobreCualquiera").should("be.visible").clear().type(numRequest);
@@ -195,7 +141,14 @@ Cypress.Commands.add('liquidationData', (numRUC, diagnosticCode, numRequest, num
   cy.wait(time);
   cy.xpath("//button[contains(.,'Guardar y Continuar')]").click();
   cy.wait(time);
-  
+  //Obtener el numero del reclamo
+  cy.get('#numeroReclamo').invoke('text').then(text =>{
+    cy.log('El numero de reclamo es: '+text);
+  });
+  cy.getClaimService(numContract).then(s => {
+    cy.wrap(s.Datos.data[0].NumeroReclamo).as('numClaim');
+  });
+
 });
 
 
@@ -243,12 +196,12 @@ Cypress.Commands.add('newInvoice', (tInvoice) => {
     cy.wrap(amortizationNum).as('amortizationNum');
   });
   cy.get('@amortizationNum').then(amortizationNum => {
-    cy.xpath("//input[@id='numeroAutorizacionId']").type(amortizationNum, { force: true });
+    cy.xpath("//input[@id='numeroAutorizacionId']").type(amortizationNum + '{enter}', { force: true });
     cy.wait(time);
   });
   //total factura
-  cy.xpath("//input[@id='totalFacturaId']").click({ force: true }).clear({ force: true }).type(tInvoice, { force: true });
-  cy.xpath("//input[@id='totalFacturaId']").click({ force: true }).clear({ force: true }).type(tInvoice, { force: true });
+  //cy.xpath("//input[@id='totalFacturaId']").click({ force: true }).clear({ force: true }).type(tInvoice, { force: true });
+  cy.xpath("//input[@id='totalFacturaId']").click({ force: true }).type(tInvoice, { force: true });
   cy.wait(time);
   cy.xpath("//facturaliquidacion/*//button[contains(.,'Guardar')]").click({ force: true });
   cy.wait(time);
@@ -256,10 +209,17 @@ Cypress.Commands.add('newInvoice', (tInvoice) => {
 
 //Ingresar el detalle de la factura
 Cypress.Commands.add('invoiceDetails', (procedure, quantity, presented) => {
+  //cy.get("#codigoProcedimiento2").type(procedure + '{enter}', { force: true });
+  //cy.wait(time);
+  //cy.get("#cantidadDetalle").click({ force: true }).clear({ force: true }).type(quantity, { force: true });
+  //cy.get("#cantidadDetalle").click({ force: true }).type(quantity, { force: true });
+
   cy.get("#codigoProcedimiento2").type(procedure, { force: true });
   cy.get("#codigoProcedimiento2").type('{enter}', { force: true });
   cy.wait(time);
+  cy.wait(time);
   cy.get("#cantidadDetalle").click({ force: true }).clear({ force: true }).type(quantity, { force: true });
+
   cy.wait(time);
   cy.get("#ValorPresentado").type(presented, { force: true });
   cy.wait(time);
@@ -303,31 +263,59 @@ Cypress.Commands.add('randomNumbers', (minG, maxG) => {
   return (numRandom);
 });
 /*
-Cypress.Commands.add('calculateCoveragePercentage', (presented) => {
-  var cDeductible, dAvailable, bonus, coverVal, copago;
+Cypress.Commands.add('getCoveragePercentage', () => {
   cy.get('@tipeCoverage').then(valueC => {
-    if (valueC != 'Hospital' && valueC != 'Hospital del Día') {
-      cy.get('@totalDeductible').then(totalDeductible => {
-        cy.get('@coverDeductible').then(coverDeductible => {
-          cy.get('@coverPercentage').then(coverPercentage => {
-            let cPer = Number(coverPercentage.text().split("%").join(''));
-            coverVal = cPer / 100;
-            dAvailable = totalDeductible - coverDeductible;
-            if (dAvailable > 0 && dAvailable < presented) {
-              cDeductible = presented - dAvailable;
-              bonus = dAvailable * coverVal;
-              copago = dAvailable - bonus;
+    cy.getDeductibleInformationService(numContract).then(s => {
+      if (valueC != 'Hospital' && valueC != 'Hospital del Día') {
+        cy.wrap(s.Datos.Entidades[0].Coberturas[0].Valor).as('coverPercentage');//obtengo el porcentaje de cobertura ambulatorio
+      } else {
+        cy.wrap(s.Datos.Entidades[0].Coberturas[1].Valor).as('coverPercentage');//obtengo el porcentaje de cobertura hospitalario
+      }
+    });
+  });
+});*/
+//Funcion para verificar si el deducible esta disponible
+Cypress.Commands.add('isDeductibleCoveragePercentage', (numContract, presented) => {
+  var cDeductible, dAvailable, bonus, coverVal, copago;
+  cy.getDeductibleInformationService(numContract).then(s => {
+    cy.wrap(s.Datos.Entidades[0].DeducibleTotal).as('totalDeductible')//obtengo el deducible total
+    cy.wrap(s.Datos.Entidades[0].Beneficiarios[0].DeducibleCubierto).as('coverDeductible')//obetengo el deducible cubierto
+    cy.wrap(s.Datos.Entidades[0].Deducibles[0].Codigo).as('codeDeductible');//obtengo el tipo de deducible
+    //cy.wrap(s.Datos.Entidades[0].Coberturas[0].Valor).as('coverPercentage');//obtengo el porcentaje de cobertura 
+    cy.get('@tipeCoverage').then(valueC => {
+      if (valueC != 'Hospital' && valueC != 'Hospital del Día') {
+        cy.wrap(s.Datos.Entidades[0].Coberturas[0].Valor).as('coverPercentage');//obtengo el porcentaje de cobertura ambulatorio
+      } else {
+        cy.wrap(s.Datos.Entidades[0].Coberturas[1].Valor).as('coverPercentage');//obtengo el porcentaje de cobertura hospitalario
+      };
+    });
+  });
 
-            } else if (dAvailable = 0 && dAvailable < presented) {
-              bonus = presented * coverVal;
-              copago = dAvailable - bonus;
-            }
-            return cy.wrap(copago).as('copago');
-          });
-        });
+  cy.get('@totalDeductible').then(totalDeductible => {
+    cy.get('@coverDeductible').then(coverDeductible => {
+      cy.get('@coverPercentage').then(coverPercentage => {
+        dAvailable = totalDeductible - coverDeductible;
+        cy.log('Deducible total= ' + totalDeductible + '\nDeducible cubierto= '+coverDeductible+'\nDeducible disponible= '+dAvailable);  
+        let cPer = Number(coverPercentage.split("%").join(''));
+        //let cPerT = cPer.split("%").join('');
+        //let cPerN = Number(cPerT);
+        coverVal = cPer / 100;
+        if (dAvailable >= presented) {
+          //No se calcula COPAGO
+          return cy.wrap(true);
+        } else {
+          //Si se calcula COPAGO
 
+          //cDeductible = dAvailable;
+          valorRestante = presented - dAvailable
+          bonus = valorRestante * coverVal;
+          copago = valorRestante - bonus;
+          cy.wrap(copago).as('copago');
+          return cy.wrap(false);
+        }
       });
-    }
+    });
   });
 });
-*/
+
+

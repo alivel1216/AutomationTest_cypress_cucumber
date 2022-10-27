@@ -14,20 +14,22 @@ import {
       cy.typePassword(password);
       cy.clickLogin();
       cy.getTokenService(username,password);
+      
     });
+
   });
   
   //Liquidaciones e ingresar contrato
-  When("Un usuario accede Liquidaciones e ingresa el contrato {string}", (numContract) => {
+  When("Un usuario accede Liquidaciones e ingresa el contrato {string}", (numContract) => {    
     cy.pLiquidations();
     cy.typeContract(numContract);
   });
   
   //Listar y seleccionar beneficiarios
-  Then("El usuario selecciona al benficiario y procede a la liquidación {string}{string}{string}{string}{string}{string}{string}{string}", (numContract, quantity,numRUC,
-    diagnosticCode, numRequest, tInvoice, procedure, presented) => {
-    cy.beneficiariesList();
-    cy.validateContract(numContract,quantity,numRUC,diagnosticCode, numRequest, tInvoice, procedure, presented);
+  Then("El usuario selecciona al benficiario y procede a la liquidación {string}{string}{string}{string}{string}{string}{string}{string}", (numContract,numRUC,
+    diagnosticCode, numRequest, tInvoice, procedure, quantity,presented) => {
+    cy.selectContract();
+    cy.validateContract(numContract,numRUC,diagnosticCode, numRequest, tInvoice, procedure, quantity, presented);
   });
 /*
   And("El usuario ingresa los datos de la factura {string}{string}{string}{string}", (tInvoice,procedure, quantity, presented) =>{

@@ -24,6 +24,5 @@
 // -- This will overwrite an existing command --
 // Cypress.Commands.overwrite('visit', (originalFn, url, options) => { ... })
 import './login'
-import './deduciblePER'
 import './deducibleV2'
 import './services'

@@ -123,7 +123,9 @@ Cypress.Commands.add('getClaimService', (numContract) => {
         'CodigoPlataforma': 7,
         'SistemaOperativo': 'Windows',
         'DispositivoNavegador': 'Chrome',
-        'DireccionIP': '186.47.183.106',        
+        'DireccionIP': '186.47.183.106',     
+        'X-Page-Number': '1',
+        'X-Page-Size': '10'   
       },
       body: {
         "CodigoProducto": value.data[0].CodigoProducto,
@@ -133,7 +135,6 @@ Cypress.Commands.add('getClaimService', (numContract) => {
       }
     }).then(function (response) {
       expect(response.status).to.eq(200);
-      expect(response.body.data[0].NumeroContrato).to.eq(parseInt(numContract));
       return cy.wrap(response.body);
     });
   });
@@ -159,8 +160,8 @@ Cypress.Commands.add('coveragePercentageService', (numContract) => {
         'X-Page-Number': 1,
         'X-Page-Size': '10'
       },
-      body: {
-        
+      
+      body: {        
         "Reclamo": { 
           "NumeroReclamo": 28131695, 
           "NumeroAlcance": 0
@@ -177,6 +178,8 @@ Cypress.Commands.add('coveragePercentageService', (numContract) => {
           }
         ] 
       }
+      
+
     }).then(function (response) {
       expect(response.status).to.eq(200);
       return cy.wrap(response.body);
