@@ -123,9 +123,9 @@ Cypress.Commands.add('getClaimService', (numContract) => {
         'CodigoPlataforma': 7,
         'SistemaOperativo': 'Windows',
         'DispositivoNavegador': 'Chrome',
-        'DireccionIP': '186.47.183.106',     
+        'DireccionIP': '186.47.183.106',
         'X-Page-Number': '1',
-        'X-Page-Size': '10'   
+        'X-Page-Size': '10'
       },
       body: {
         "CodigoProducto": value.data[0].CodigoProducto,
@@ -144,45 +144,111 @@ Cypress.Commands.add('getClaimService', (numContract) => {
 Cypress.Commands.add('coveragePercentageService', (numContract) => {
   cy.filterForAuthorizationService(numContract).then(value => {
     const url = `http://pruebas.servicios.saludsa.com.ec/ServicioArmonix/api/liquidaciones/liquidarReclamo`
-    cy.request({
-      method: 'POST',
-      url: url,
-      form: true,
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Accept': 'application/json',
-        'Authorization': window.localStorage.getItem("tokenType") + " " + window.localStorage.getItem("accessToken"),
-        'CodigoAplicacion': 28,
-        'CodigoPlataforma': 7,
-        'SistemaOperativo': 'Windows',
-        'DispositivoNavegador': 'Chrome',
-        'DireccionIP': '200.125.230.97',
-        'X-Page-Number': 1,
-        'X-Page-Size': '10'
-      },
-      
-      body: {        
-        "Reclamo": { 
-          "NumeroReclamo": 28131695, 
-          "NumeroAlcance": 0
+    cy.all([
+      () => cy.get('@establishment'), 
+      () => cy.get('@facToEmi'),
+      () => cy.get('@secuence'),
+      () => cy.get('@numClaim'),
+      () => cy.get('@numAlc'),
+      () => cy.get('@numConv'),
+    ]).then(([$code1, $code2, $code3, $numClaim, $numAlc, $numConv]) =>{
+      cy.request({
+        method: 'POST',
+        url: url,
+        form: true,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Accept': 'application/json',
+          'Authorization': window.localStorage.getItem("tokenType") + " " + window.localStorage.getItem("accessToken"),
+          'CodigoAplicacion': 28,
+          'CodigoPlataforma': 7,
+          'SistemaOperativo': 'Windows',
+          'DispositivoNavegador': 'Chrome',
+          'DireccionIP': '200.125.230.97',
+          'X-Page-Number': 1,
+          'X-Page-Size': '10'
         },
-        "ListaFacturas": [
-          {
-            "NumeroReclamo": 0,
-            "NumeroAlcance": 0,
-            "Codigo1": 14,
-            "Codigo2": 24, 
-            "Codigo3": 57845,
-            "NumeroConvenio": 5089776,
-            "TipoEmision": "O"
-          }
-        ] 
-      }
-      
 
-    }).then(function (response) {
-      expect(response.status).to.eq(200);
-      return cy.wrap(response.body);
+        body: {
+          "Reclamo": {
+            "NumeroReclamo": $numClaim,
+            "NumeroAlcance": $numAlc
+          },
+          "ListaFacturas": [
+            {
+              "NumeroReclamo": $numClaim,
+              "NumeroAlcance": $numAlc,
+              "Codigo1": $code1,
+              "Codigo2": $code2,
+              "Codigo3": $code3,
+              "NumeroConvenio": $numConv,
+              "TipoEmision": "O"
+            }
+          ]
+        }
+
+
+      }).then(function (response) {
+        expect(response.status).to.eq(200);
+        //cy.log(JSON.stringify(response.body));
+        return cy.wrap(response.body);
+      });
     });
+/*
+    cy.get('@establishment').then(code1 => {
+      cy.get('@facToEmi').then(code2 => {
+        cy.get('@secuence').then(code3 => {
+          cy.get('@numClaim').then(numClaim => {
+            cy.get('@numAlc').then(numAlc => {
+              cy.get('@numConv').then(numConv => {
+
+                cy.request({
+                  method: 'POST',
+                  url: url,
+                  form: true,
+                  headers: {
+                    'Content-Type': 'application/json; charset=utf-8',
+                    'Accept': 'application/json',
+                    'Authorization': window.localStorage.getItem("tokenType") + " " + window.localStorage.getItem("accessToken"),
+                    'CodigoAplicacion': 28,
+                    'CodigoPlataforma': 7,
+                    'SistemaOperativo': 'Windows',
+                    'DispositivoNavegador': 'Chrome',
+                    'DireccionIP': '200.125.230.97',
+                    'X-Page-Number': 1,
+                    'X-Page-Size': '10'
+                  },
+
+                  body: {
+                    "Reclamo": {
+                      "NumeroReclamo": numClaim,
+                      "NumeroAlcance": numAlc
+                    },
+                    "ListaFacturas": [
+                      {
+                        "NumeroReclamo": 0,
+                        "NumeroAlcance": 0,
+                        "Codigo1": code1,
+                        "Codigo2": code2,
+                        "Codigo3": code3,
+                        "NumeroConvenio": numConv,
+                        "TipoEmision": "O"
+                      }
+                    ]
+                  }
+
+
+                }).then(function (response) {
+                  expect(response.status).to.eq(200);
+                  //cy.log(JSON.stringify(response.body));
+                  return cy.wrap(response.body);
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+    */
   });
 });

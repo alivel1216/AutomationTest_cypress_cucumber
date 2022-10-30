@@ -10,5 +10,5 @@ Feature: Deducible de liquidación del contrato PER
         #probar si los Examples pueden estar al ultimo
         Examples: ingresa el contrato
             | username    | password    | numContract | numRUC        | diagCode | numRequest  | tInvoice | procedure | quantity | presented |
-            | EDPALADINES | Dp4l4dines_ | 5633442     | 0991353119001 | J00      | sobreprueba | 10       | 301002    | 1        | 10        |
+            | EDPALADINES | Dp4l4dines_ | 5632888     | 1791290003001 | J00      | sobreprueba | 10       | 301002    | 1        | 10        |
 

@@ -26,3 +26,4 @@
 import './login'
 import './deducibleV2'
 import './services'
+import './aliasses'
